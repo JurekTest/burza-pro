@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jak daleko jest burza?</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0288d1">
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2em;
+      background: #e0f7fa;
+    }
+    button, select {
+      font-size: 1.1em;
+      padding: 0.7em 1.2em;
+      margin: 0.5em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button {
+      background-color: #0288d1;
+      color: white;
+    }
+    #result, #history {
+      margin-top: 2em;
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+    ul {
+      padding: 0;
+      list-style: none;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Jak daleko jest burza?</h1>
+  <label for="langSelect">Wybierz język: </label>
+  <select id="langSelect" onchange="changeLanguage()">
+    <option value="pl">Polski</option>
+    <option value="en">English</option>
+    <option value="de">Deutsch</option>
+  </select>
+
+  <p id="instructions">Kliknij <strong>"Błysk"</strong>, gdy zobaczysz piorun, a potem <strong>"Grzmot"</strong>, gdy usłyszysz dźwięk.</p>
+  <button onclick="recordFlash()" id="flashBtn">✨ Błysk</button>
+  <button onclick="recordThunder()" id="thunderBtn">🌩️ Grzmot</button>
+  <div id="result"></div>
+  <div id="history">
+    <h3 id="historyTitle">Historia pomiarów:</h3>
+    <ul id="historyList"></ul>
+  </div>
+
+  <script>
+    let flashTime = null;
+    const history = [];
+    const translations = {
+      pl: {
+        title: "Jak daleko jest burza?",
+        instructions: "Kliknij \"Błysk\", gdy zobaczysz piorun, a potem \"Grzmot\", gdy usłyszysz dźwięk.",
+        flash: "✨ Błysk",
+        thunder: "🌩️ Grzmot",
+        waiting: "Czekam na grzmot...",
+        error: "Najpierw kliknij 'Błysk'!",
+        result: d => `Burza jest około ${d.km} km od Ciebie (czas: ${d.s} sekundy).`,
+        historyTitle: "Historia pomiarów:"
+      },
+      en: {
+        title: "How far is the storm?",
+        instructions: "Click \"Flash\" when you see lightning, then \"Thunder\" when you hear it.",
+        flash: "✨ Flash",
+        thunder: "🌩️ Thunder",
+        waiting: "Waiting for thunder...",
+        error: "Click 'Flash' first!",
+        result: d => `Storm is approximately ${d.km} km away (time: ${d.s} seconds).`,
+        historyTitle: "History of measurements:"
+      },
+      de: {
+        title: "Wie weit ist das Gewitter?",
+        instructions: "Klicke auf \"Blitz\", wenn du den Blitz siehst, dann auf \"Donner\", wenn du ihn hörst.",
+        flash: "✨ Blitz",
+        thunder: "🌩️ Donner",
+        waiting: "Warte auf Donner...",
+        error: "Zuerst auf 'Blitz' klicken!",
+        result: d => `Das Gewitter ist ca. ${d.km} km entfernt (Zeit: ${d.s} Sekunden).`,
+        historyTitle: "Messverlauf:"
+      }
+    };
+
+    let currentLang = 'pl';
+
+    function changeLanguage() {
+      currentLang = document.getElementById("langSelect").value;
+      const t = translations[currentLang];
+      document.getElementById("title").textContent = t.title;
+      document.getElementById("instructions").textContent = t.instructions;
+      document.getElementById("flashBtn").textContent = t.flash;
+      document.getElementById("thunderBtn").textContent = t.thunder;
+      document.getElementById("historyTitle").textContent = t.historyTitle;
+      renderHistory();
+    }
+
+    function recordFlash() {
+      flashTime = Date.now();
+      document.getElementById('result').textContent = translations[currentLang].waiting;
+    }
+
+    function recordThunder() {
+      if (!flashTime) {
+        document.getElementById('result').textContent = translations[currentLang].error;
+        return;
+      }
+
+      const thunderTime = Date.now();
+      const seconds = ((thunderTime - flashTime) / 1000).toFixed(1);
+      const distanceKm = (seconds / 3).toFixed(2);
+      const message = translations[currentLang].result({ km: distanceKm, s: seconds });
+
+      document.getElementById('result').textContent = message;
+      history.unshift(message);
+      renderHistory();
+      flashTime = null;
+    }
+
+    function renderHistory() {
+      const list = document.getElementById("historyList");
+      list.innerHTML = "";
+      history.slice(0, 5).forEach(entry => {
+        const li = document.createElement("li");
+        li.textContent = entry;
+        list.appendChild(li);
+      });
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('Service Worker zarejestrowany', reg))
+          .catch(err => console.error('Błąd SW', err));
+      });
+    }
+  </script>
+</body>
+</html>
